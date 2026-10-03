@@ -1,88 +1,88 @@
-# Automation Jemuran Rumah dan Pintu Otomatis
+# Smart Home Automation: Clothes Line and Automatic Door
 
-Proyek Arduino untuk otomatisasi jemuran rumah dan pintu otomatis berbasis sensor hujan dan sensor jarak.
+Arduino project for automated clothes line and automatic door system based on rain sensor and distance sensor.
 
-## Deskripsi
+## Description
 
-Sistem ini dirancang untuk membantu mengangkat jemuran secara otomatis saat hujan mulai turun dan membuka pintu otomatis ketika ada objek yang mendekat. Proyek ini menggunakan:
+This system is designed to automatically raise the clothes line when rain starts falling and open a door automatically when an object approaches. This project uses:
 
-- Sensor kelembapan/air (analog input)
-- Sensor ultrasonik HC-SR04
-- 2 buah servo motor
-- LED indikator
+- Moisture/water sensor (analog input)
+- Ultrasonic sensor HC-SR04
+- 2 servo motors
+- LED indicator
 - Buzzer
 - Arduino
 
-## Fitur
+## Features
 
-- Jemuran otomatis naik saat ketinggian air sensor melebihi ambang tertentu
-- Jemuran turun kembali saat kondisi tidak hujan
-- Pintu terbuka otomatis bila objek terdeteksi dalam jarak <= 6 cm
-- Pintu akan menutup kembali setelah 3 detik
-- LED dan buzzer digunakan sebagai indikator status
+- Clothes line automatically rises when water sensor value exceeds a certain threshold
+- Clothes line lowers back when there is no rain
+- Door automatically opens when an object is detected within 6 cm range
+- Door closes back after 3 seconds
+- LED and buzzer are used as status indicators
 
-## Komponen yang Digunakan
+## Components Used
 
-- Arduino Uno (atau board kompatibel)
-- Servo motor untuk jemuran
-- Servo motor untuk pintu
-- Sensor air analog
-- Sensor ultrasonik HC-SR04
-- LED 5V
+- Arduino Uno (or compatible board)
+- Servo motor for clothes line
+- Servo motor for door
+- Analog water sensor
+- Ultrasonic sensor HC-SR04
+- 5V LED
 - Buzzer
-- Kabel jumper dan breadboard
+- Jumper wires and breadboard
 
 ## Pin Wiring
 
-| Komponen | Pin Arduino |
+| Component | Arduino Pin |
 | --- | --- |
-| Sensor Air | A0 |
-| Servo Jemuran | 9 |
-| Servo Pintu | 6 |
+| Water Sensor | A0 |
+| Clothes Line Servo | 9 |
+| Door Servo | 6 |
 | Buzzer | 8 |
 | LED | 7 |
-| Trigger HC-SR04 | 10 |
-| Echo HC-SR04 | 11 |
+| HC-SR04 Trigger | 10 |
+| HC-SR04 Echo | 11 |
 
-## Prinsip Kerja
+## How It Works
 
-### 1. Jemuran otomatis
-- Nilai sensor air diukur setiap loop.
-- Jika sensor air >= 300, sistem menganggap hujan dan mengangkat jemuran.
-- Jika tidak hujan, jemuran berada pada posisi turun.
+### 1. Automatic Clothes Line
+- Water sensor value is measured on every loop cycle.
+- If water sensor >= 300, the system assumes it's raining and raises the clothes line.
+- If not raining, the clothes line stays in the lowered position.
 
-### 2. Pintu otomatis
-- Sensor HC-SR04 memantau jarak objek.
-- Jika jarak <= 6 cm, pintu membuka sebesar 90°.
-- Setelah 3 detik, pintu menutup kembali.
+### 2. Automatic Door
+- HC-SR04 sensor monitors object distance.
+- If distance <= 6 cm, the door opens to 90°.
+- After 3 seconds, the door closes back.
 
-### 3. Indikator
-- LED menyala saat pintu terbuka.
-- Buzzer menandakan kondisi hujan dan chime saat pintu membuka.
+### 3. Indicators
+- LED turns on when door opens.
+- Buzzer indicates rain condition and plays a chime when door opens.
 
-## Struktur File
+## File Structure
 
-- `Kode Arduino` — file kode program utama Arduino
-- `README.md` — dokumentasi proyek
+- `Kode Arduino` — main Arduino program code file
+- `README.md` — project documentation
 
-## Cara Menjalankan
+## How to Run
 
-1. Buka file `Kode Arduino` di Arduino IDE.
-2. Pastikan board dan port serial sudah benar.
-3. Upload program ke Arduino.
-4. Hubungkan semua komponen sesuai pin wiring.
-5. Jalankan sistem dan amati respons otomatis.
+1. Open `Kode Arduino` file in Arduino IDE.
+2. Make sure board and serial port are correctly selected.
+3. Upload the program to Arduino.
+4. Connect all components according to the pin wiring diagram.
+5. Run the system and observe the automatic responses.
 
-## Catatan
+## Notes
 
-- Nilai ambang `batasAir` dan `batasJarak` dapat diubah sesuai kebutuhan.
-- Gunakan power supply yang stabil agar servo dan komponen bekerja dengan baik.
-- Untuk penggunaan di lingkungan nyata, disarankan menambahkan penguatan casing dan proteksi kabel.
+- The `batasAir` and `batasJarak` threshold values can be adjusted according to your needs.
+- Use a stable power supply to ensure proper servo and component operation.
+- For real-world use, it is recommended to add reinforced casing and cable protection.
 
-## Lisensi
+## License
 
-Proyek ini dibuat untuk kebutuhan pembelajaran dan pengembangan sistem otomatisasi rumah sederhana.
+This project was created for learning purposes and the development of simple home automation systems.
 
-## Penulis
+## Author
 
-Dibuat oleh `sifF21`.
+Created by `sifF21`.
