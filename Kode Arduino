@@ -2,58 +2,58 @@
 #include <Servo.h>
 
 // =====================================================
-// SERVO 1 = JEMURAN / MENGANGKAT BAJU
-// SENSOR AIR >= 300 -> 180 derajat
+// SERVO 1 = CLOTHES LINE / RAISE CLOTHES
+// WATER SENSOR >= 300 -> 180 degrees
 // =====================================================
-Servo servoJemuran;
+Servo servoClothesLine;
 
 // =====================================================
-// SERVO 2 = PINTU
-// HC-SR04 <= 6 cm -> 90 derajat
-// Setelah 3 detik -> kembali 0 derajat
+// SERVO 2 = DOOR
+// HC-SR04 <= 6 cm -> 90 degrees
+// After 3 seconds -> back to 0 degrees
 // =====================================================
-Servo servoPintu;
+Servo servoDoor;
 
-// ================= PIN =================
-const int sensorAirPin = A0;
+// ================= PINS =================
+const int waterSensorPin = A0;
 
-const int pinServoJemuran = 9;
-const int pinServoPintu   = 6;
+const int clothesLineServoPin = 9;
+const int doorServoPin = 6;
 
-const int pinBuzzer = 8;
-const int pinLED    = 7;
+const int buzzerPin = 8;
+const int ledPin = 7;
 
 // HC-SR04
-const int pinTrig = 10;
-const int pinEcho = 11;
+const int trigPin = 10;
+const int echoPin = 11;
 
-// ================= BATAS =================
-const int batasAir = 300;
-const float batasJarak = 6.0;
+// ================= THRESHOLDS =================
+const int waterThreshold = 300;
+const float distanceThreshold = 6.0;
 
-// ================= POSISI SERVO =================
-const int jemuranTurun = 90;
-const int jemuranNaik  = 180;
+// ================= SERVO POSITIONS =================
+const int clothesLineDown = 90;
+const int clothesLineUp = 180;
 
-const int pintuTutup = 0;
-const int pintuBuka  = 90;
+const int doorClosed = 0;
+const int doorOpen = 90;
 
-// ================= DELAY PINTU =================
-// Pintu terbuka selama 3 detik
-const unsigned long waktuPintuTerbuka = 3000;
+// ================= DOOR DELAY =================
+// Door stays open for 3 seconds
+const unsigned long doorOpenDuration = 3000;
 
-unsigned long waktuPintu = 0;
-bool pintuSedangTerbuka = false;
+unsigned long doorOpenTime = 0;
+bool doorIsOpen = false;
 
-// ================= BUZZER AIR =================
-const int frekuensiAir = 220;
-const unsigned long intervalBuzzerAir = 800;
+// ================= WATER BUZZER =================
+const int waterBuzzerFrequency = 220;
+const unsigned long buzzerInterval = 800;
 
-unsigned long waktuBuzzerAir = 0;
-bool statusBuzzerAir = false;
+unsigned long waterBuzzerTime = 0;
+bool buzzerStatus = false;
 
-// ================= STATUS HC-SR04 =================
-bool objekSebelumnya = false;
+// ================= HC-SR04 STATUS =================
+bool previousObjectDetection = false;
 
 
 // =====================================================
@@ -63,21 +63,21 @@ void setup() {
 
   Serial.begin(9600);
 
-  servoJemuran.attach(pinServoJemuran);
-  servoPintu.attach(pinServoPintu);
+  servoClothesLine.attach(clothesLineServoPin);
+  servoDoor.attach(doorServoPin);
 
-  pinMode(pinBuzzer, OUTPUT);
-  pinMode(pinLED, OUTPUT);
+  pinMode(buzzerPin, OUTPUT);
+  pinMode(ledPin, OUTPUT);
 
-  pinMode(pinTrig, OUTPUT);
-  pinMode(pinEcho, INPUT);
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
 
-  // Posisi awal
-  servoJemuran.write(jemuranTurun);
-  servoPintu.write(pintuTutup);
+  // Initial positions
+  servoClothesLine.write(clothesLineDown);
+  servoDoor.write(doorClosed);
 
-  digitalWrite(pinLED, LOW);
-  noTone(pinBuzzer);
+  digitalWrite(ledPin, LOW);
+  noTone(buzzerPin);
 }
 
 
@@ -86,102 +86,102 @@ void setup() {
 // =====================================================
 void loop() {
 
-  int nilaiAir = analogRead(sensorAirPin);
-  float jarak = bacaJarak();
+  int waterValue = analogRead(waterSensorPin);
+  float distance = readDistance();
 
-  bool hujan = (nilaiAir >= batasAir);
-  bool objekDekat = (jarak > 0 && jarak <= batasJarak);
+  bool isRaining = (waterValue >= waterThreshold);
+  bool objectNear = (distance > 0 && distance <= distanceThreshold);
 
-  Serial.print("Air = ");
-  Serial.print(nilaiAir);
+  Serial.print("Water = ");
+  Serial.print(waterValue);
 
-  Serial.print(" | Jarak = ");
-  Serial.print(jarak);
+  Serial.print(" | Distance = ");
+  Serial.print(distance);
 
-  Serial.print(" | Pintu = ");
-  Serial.println(pintuSedangTerbuka ? "BUKA" : "TUTUP");
+  Serial.print(" | Door = ");
+  Serial.println(doorIsOpen ? "OPEN" : "CLOSED");
 
 
   // ===================================================
-  // SERVO JEMURAN
+  // CLOTHES LINE SERVO
   // ===================================================
-  if (hujan) {
+  if (isRaining) {
 
-    // Ada air -> angkat jemuran 180°
-    servoJemuran.write(jemuranNaik);
+    // Raining -> raise clothes line to 180°
+    servoClothesLine.write(clothesLineUp);
 
   } 
   else {
 
-    // Tidak ada air -> turunkan jemuran
-    servoJemuran.write(jemuranTurun);
+    // Not raining -> lower clothes line
+    servoClothesLine.write(clothesLineDown);
   }
 
 
   // ===================================================
-  // SERVO PINTU
+  // DOOR SERVO
   // ===================================================
 
-  // Jika ada objek <= 6 cm dan pintu belum terbuka
-  if (objekDekat && !pintuSedangTerbuka) {
+  // If object detected <= 6 cm and door is not open
+  if (objectNear && !doorIsOpen) {
 
-    // Buka pintu 90°
-    servoPintu.write(pintuBuka);
+    // Open door to 90°
+    servoDoor.write(doorOpen);
 
-    // LED menyala
-    digitalWrite(pinLED, HIGH);
+    // LED on
+    digitalWrite(ledPin, HIGH);
 
-    // Bunyi chime
-    bunyiChime();
+    // Door chime sound
+    playDoorChime();
 
-    // Catat waktu saat pintu dibuka
-    waktuPintu = millis();
+    // Record time when door opened
+    doorOpenTime = millis();
 
-    pintuSedangTerbuka = true;
+    doorIsOpen = true;
   }
 
 
   // ===================================================
-  // PINTU TERBUKA -> TUNGGU 3 DETIK
+  // DOOR OPEN -> WAIT 3 SECONDS
   // ===================================================
-  if (pintuSedangTerbuka) {
+  if (doorIsOpen) {
 
-    if (millis() - waktuPintu >= waktuPintuTerbuka) {
+    if (millis() - doorOpenTime >= doorOpenDuration) {
 
-      // Tutup pintu
-      servoPintu.write(pintuTutup);
+      // Close door
+      servoDoor.write(doorClosed);
 
-      // LED mati
-      digitalWrite(pinLED, LOW);
+      // LED off
+      digitalWrite(ledPin, LOW);
 
-      pintuSedangTerbuka = false;
+      doorIsOpen = false;
     }
   }
 
 
   // ===================================================
-  // BUZZER SENSOR AIR
-  // Hanya aktif jika pintu tidak sedang membuka
+  // WATER SENSOR BUZZER
+  // Only active if door is not opening
   // ===================================================
-  if (hujan && !pintuSedangTerbuka) {
+  if (isRaining && !doorIsOpen) {
 
-    buzzerAirPutusPutus();
+    playWaterBuzzer();
 
   } 
-  else if (!pintuSedangTerbuka) {
+  else if (!doorIsOpen) {
 
-    noTone(pinBuzzer);
-    statusBuzzerAir = false;
-    waktuBuzzerAir = millis();
+    noTone(buzzerPin);
+    buzzerStatus = false;
+    waterBuzzerTime = millis();
   }
 
 
-  // Reset status deteksi objek
-  if (!objekDekat) {
-    objekSebelumnya = false;
+  // Reset object detection status
+  if (!objectNear) {
+    previousObjectDetection = false;
   } 
   else {
-    objekSebelumnya = true;
+    previousObjectDetection = true;
   }
 
   delay(50);
@@ -189,76 +189,76 @@ void loop() {
 
 
 // =====================================================
-// BACA HC-SR04
+// READ HC-SR04 DISTANCE
 // =====================================================
-float bacaJarak() {
+float readDistance() {
 
-  digitalWrite(pinTrig, LOW);
+  digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
 
-  digitalWrite(pinTrig, HIGH);
+  digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
 
-  digitalWrite(pinTrig, LOW);
+  digitalWrite(trigPin, LOW);
 
-  long durasi = pulseIn(pinEcho, HIGH, 30000);
+  long duration = pulseIn(echoPin, HIGH, 30000);
 
-  if (durasi == 0) {
+  if (duration == 0) {
     return 999;
   }
 
-  float jarak = durasi * 0.0343 / 2.0;
+  float distance = duration * 0.0343 / 2.0;
 
-  return jarak;
+  return distance;
 }
 
 
 // =====================================================
-// BUZZER AIR
-// Nada rendah dan putus-putus
+// WATER SENSOR BUZZER
+// Low frequency intermittent buzzer
 // =====================================================
-void buzzerAirPutusPutus() {
+void playWaterBuzzer() {
 
-  unsigned long sekarang = millis();
+  unsigned long now = millis();
 
-  if (sekarang - waktuBuzzerAir >= intervalBuzzerAir) {
+  if (now - waterBuzzerTime >= buzzerInterval) {
 
-    waktuBuzzerAir = sekarang;
+    waterBuzzerTime = now;
 
-    statusBuzzerAir = !statusBuzzerAir;
+    buzzerStatus = !buzzerStatus;
 
-    if (statusBuzzerAir) {
+    if (buzzerStatus) {
 
-      tone(pinBuzzer, frekuensiAir);  // 220 Hz
+      tone(buzzerPin, waterBuzzerFrequency);  // 220 Hz
 
     } 
     else {
 
-      noTone(pinBuzzer);
+      noTone(buzzerPin);
     }
   }
 }
 
 
 // =====================================================
-// CHIME PINTU
-// Bunyi seperti bel lembut dua nada
+// DOOR CHIME
+// Sound like a gentle two-tone doorbell
 // =====================================================
-void bunyiChime() {
+void playDoorChime() {
 
-  // Nada pertama
-  tone(pinBuzzer, 784);
+  // First tone
+  tone(buzzerPin, 784);
   delay(180);
 
-  noTone(pinBuzzer);
+  noTone(buzzerPin);
 
   delay(70);
 
-  // Nada kedua
-  tone(pinBuzzer, 988);
+  // Second tone
+  tone(buzzerPin, 988);
   delay(300);
 
-  noTone(pinBuzzer);
+  noTone(buzzerPin);
 
   delay(100);
 }
