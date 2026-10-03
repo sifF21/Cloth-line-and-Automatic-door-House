@@ -1,0 +1,265 @@
+
+#include <Servo.h>
+
+// =====================================================
+// SERVO 1 = JEMURAN / MENGANGKAT BAJU
+// SENSOR AIR >= 300 -> 180 derajat
+// =====================================================
+Servo servoJemuran;
+
+// =====================================================
+// SERVO 2 = PINTU
+// HC-SR04 <= 6 cm -> 90 derajat
+// Setelah 3 detik -> kembali 0 derajat
+// =====================================================
+Servo servoPintu;
+
+// ================= PIN =================
+const int sensorAirPin = A0;
+
+const int pinServoJemuran = 9;
+const int pinServoPintu   = 6;
+
+const int pinBuzzer = 8;
+const int pinLED    = 7;
+
+// HC-SR04
+const int pinTrig = 10;
+const int pinEcho = 11;
+
+// ================= BATAS =================
+const int batasAir = 300;
+const float batasJarak = 6.0;
+
+// ================= POSISI SERVO =================
+const int jemuranTurun = 90;
+const int jemuranNaik  = 180;
+
+const int pintuTutup = 0;
+const int pintuBuka  = 90;
+
+// ================= DELAY PINTU =================
+// Pintu terbuka selama 3 detik
+const unsigned long waktuPintuTerbuka = 3000;
+
+unsigned long waktuPintu = 0;
+bool pintuSedangTerbuka = false;
+
+// ================= BUZZER AIR =================
+const int frekuensiAir = 220;
+const unsigned long intervalBuzzerAir = 800;
+
+unsigned long waktuBuzzerAir = 0;
+bool statusBuzzerAir = false;
+
+// ================= STATUS HC-SR04 =================
+bool objekSebelumnya = false;
+
+
+// =====================================================
+// SETUP
+// =====================================================
+void setup() {
+
+  Serial.begin(9600);
+
+  servoJemuran.attach(pinServoJemuran);
+  servoPintu.attach(pinServoPintu);
+
+  pinMode(pinBuzzer, OUTPUT);
+  pinMode(pinLED, OUTPUT);
+
+  pinMode(pinTrig, OUTPUT);
+  pinMode(pinEcho, INPUT);
+
+  // Posisi awal
+  servoJemuran.write(jemuranTurun);
+  servoPintu.write(pintuTutup);
+
+  digitalWrite(pinLED, LOW);
+  noTone(pinBuzzer);
+}
+
+
+// =====================================================
+// LOOP
+// =====================================================
+void loop() {
+
+  int nilaiAir = analogRead(sensorAirPin);
+  float jarak = bacaJarak();
+
+  bool hujan = (nilaiAir >= batasAir);
+  bool objekDekat = (jarak > 0 && jarak <= batasJarak);
+
+  Serial.print("Air = ");
+  Serial.print(nilaiAir);
+
+  Serial.print(" | Jarak = ");
+  Serial.print(jarak);
+
+  Serial.print(" | Pintu = ");
+  Serial.println(pintuSedangTerbuka ? "BUKA" : "TUTUP");
+
+
+  // ===================================================
+  // SERVO JEMURAN
+  // ===================================================
+  if (hujan) {
+
+    // Ada air -> angkat jemuran 180°
+    servoJemuran.write(jemuranNaik);
+
+  } 
+  else {
+
+    // Tidak ada air -> turunkan jemuran
+    servoJemuran.write(jemuranTurun);
+  }
+
+
+  // ===================================================
+  // SERVO PINTU
+  // ===================================================
+
+  // Jika ada objek <= 6 cm dan pintu belum terbuka
+  if (objekDekat && !pintuSedangTerbuka) {
+
+    // Buka pintu 90°
+    servoPintu.write(pintuBuka);
+
+    // LED menyala
+    digitalWrite(pinLED, HIGH);
+
+    // Bunyi chime
+    bunyiChime();
+
+    // Catat waktu saat pintu dibuka
+    waktuPintu = millis();
+
+    pintuSedangTerbuka = true;
+  }
+
+
+  // ===================================================
+  // PINTU TERBUKA -> TUNGGU 3 DETIK
+  // ===================================================
+  if (pintuSedangTerbuka) {
+
+    if (millis() - waktuPintu >= waktuPintuTerbuka) {
+
+      // Tutup pintu
+      servoPintu.write(pintuTutup);
+
+      // LED mati
+      digitalWrite(pinLED, LOW);
+
+      pintuSedangTerbuka = false;
+    }
+  }
+
+
+  // ===================================================
+  // BUZZER SENSOR AIR
+  // Hanya aktif jika pintu tidak sedang membuka
+  // ===================================================
+  if (hujan && !pintuSedangTerbuka) {
+
+    buzzerAirPutusPutus();
+
+  } 
+  else if (!pintuSedangTerbuka) {
+
+    noTone(pinBuzzer);
+    statusBuzzerAir = false;
+    waktuBuzzerAir = millis();
+  }
+
+
+  // Reset status deteksi objek
+  if (!objekDekat) {
+    objekSebelumnya = false;
+  } 
+  else {
+    objekSebelumnya = true;
+  }
+
+  delay(50);
+}
+
+
+// =====================================================
+// BACA HC-SR04
+// =====================================================
+float bacaJarak() {
+
+  digitalWrite(pinTrig, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(pinTrig, HIGH);
+  delayMicroseconds(10);
+
+  digitalWrite(pinTrig, LOW);
+
+  long durasi = pulseIn(pinEcho, HIGH, 30000);
+
+  if (durasi == 0) {
+    return 999;
+  }
+
+  float jarak = durasi * 0.0343 / 2.0;
+
+  return jarak;
+}
+
+
+// =====================================================
+// BUZZER AIR
+// Nada rendah dan putus-putus
+// =====================================================
+void buzzerAirPutusPutus() {
+
+  unsigned long sekarang = millis();
+
+  if (sekarang - waktuBuzzerAir >= intervalBuzzerAir) {
+
+    waktuBuzzerAir = sekarang;
+
+    statusBuzzerAir = !statusBuzzerAir;
+
+    if (statusBuzzerAir) {
+
+      tone(pinBuzzer, frekuensiAir);  // 220 Hz
+
+    } 
+    else {
+
+      noTone(pinBuzzer);
+    }
+  }
+}
+
+
+// =====================================================
+// CHIME PINTU
+// Bunyi seperti bel lembut dua nada
+// =====================================================
+void bunyiChime() {
+
+  // Nada pertama
+  tone(pinBuzzer, 784);
+  delay(180);
+
+  noTone(pinBuzzer);
+
+  delay(70);
+
+  // Nada kedua
+  tone(pinBuzzer, 988);
+  delay(300);
+
+  noTone(pinBuzzer);
+
+  delay(100);
+}
+
